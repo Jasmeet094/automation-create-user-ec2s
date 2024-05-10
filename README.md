@@ -10,7 +10,7 @@ NOTE: Ec2 Instance on which you need to enable this automation should have secre
 ### Step 1 - Create Document in AWS SSM
 
 1. Go to systems manager in AWS and create a Document in `owned by me` and select `automation` then & paste the Document code.
-
+NOTE: While Creating Document Please change the instance tag in the script and add tag which your ec2 have 
 
 ### Step 2 - Create IAM Role for Eventbridge 
 
