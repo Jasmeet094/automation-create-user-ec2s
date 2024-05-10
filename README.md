@@ -2,6 +2,7 @@
 # Create Users in EC2 Instances Automattically through AWS SECRETS Manager
 
 ### Document Explain
+
 ```
 Document.txt - This is the document which is used in SSM/AWS Systems Manger to create automation. This document incluse 2 scripts which will first delete users which are not in current secrets manager. Then It will create new users if there is any new user entry in aws secrets manager. Users should be create as name and then ssh-public_key. It will create the users on ec2 and add public key in authorized_keys file.    
 NOTE: Ec2 Instance on which you need to enable this automation should have secrets manager and ssm full access 
@@ -10,6 +11,7 @@ NOTE: Ec2 Instance on which you need to enable this automation should have secre
 ### Step 1 - Create Document in AWS SSM
 
 1. Go to systems manager in AWS and create a Document in `owned by me` and select `automation` then & paste the Document code.
+
 
 ### Step 2 - Create IAM Role for Eventbridge 
 
