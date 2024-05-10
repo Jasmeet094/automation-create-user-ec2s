@@ -1,0 +1,78 @@
+description: Run a shell script to manage SSH users for dotnet_console instance, fetched from AWS Secrets Manager.
+schemaVersion: '0.3'
+mainSteps:
+  - name: runscript_delete_user
+    action: aws:runCommand
+    maxAttempts: 1
+    timeoutSeconds: 600
+    nextStep: runscript_create_user
+    isEnd: false
+    inputs:
+      DocumentName: AWS-RunShellScript
+      Targets:
+        - Key: tag:Name
+          Values:
+            - fx-ng-dotnet-console-app
+      Parameters:
+        commands: |-
+          #!/bin/bash
+
+          # Get the list of users from AWS Secrets Manager
+          SECRET_KEYS=$(aws secretsmanager get-secret-value --secret-id dotnet-console-app-users --region us-east-1 --query SecretString --output text | jq 'keys_unsorted[]')
+
+          EXISTING_USERS=$(awk -F: '{print $1}' /etc/passwd)
+
+          EXCLUDED_USERS='root daemon bin sys sync games man lp mail news uucp proxy www-data backup list irc gnats nobody systemd-network systemd-resolve messagebus systemd-timesync syslog _apt tss uuidd tcpdump sshd pollinate landscape fwupd-refresh ec2-instance-connect _chrony ubuntu lxd jacob xiao dd-agent ssm-user'
+
+          users_deleted="false"
+
+          for USER in $EXISTING_USERS;do
+            if ! echo "$EXCLUDED_USERS" | grep -q "$USER"; then
+                if ! echo "$SECRET_KEYS" | grep -q "$USER"; then
+                    USERNAME="${USER//\"}"
+                    sudo userdel $USERNAME
+                    echo "User $USERNAME deleted"
+                fi
+            fi
+          done
+  - name: runscript_create_user
+    action: aws:runCommand
+    maxAttempts: 1
+    timeoutSeconds: 600
+    isEnd: true
+    inputs:
+      DocumentName: AWS-RunShellScript
+      Targets:
+        - Key: tag:Name
+          Values:
+            - fx-ng-dotnet-console-app
+      Parameters:
+        commands: |-
+          cd /
+          sudo su
+          cat > to-run.sh <<- EOB
+          #!/bin/bash
+          apt install jq -y
+          SSH_DATA=\$(aws secretsmanager get-secret-value --secret-id dotnet-console-app-users --query SecretString --region us-east-1 --output text)
+          User_Array+=\$(echo \$SSH_DATA | jq 'keys' | jq -r '.[]')
+          for user in \$User_Array
+          do
+          ssh_key=\$(echo \$SSH_DATA | jq -r --arg user \$user '.[\$user]')
+          sudo adduser --disabled-password --gecos "" \$user
+          cd /home
+          sudo chown \$user:\$user \$user
+          cd ..
+          sudo -i -u \$user bash << EOF
+          mkdir ~/.ssh
+          chmod 700 ~/.ssh
+          touch ~/.ssh/authorized_keys
+          chmod 600 ~/.ssh/authorized_keys
+          cat > ~/.ssh/authorized_keys <<- EOM
+          \$ssh_key
+          EOM
+          EOF
+          usermod \$user -s /bin/false
+          done
+          EOB
+          bash to-run.sh
+          rm -rf to-run.sh
