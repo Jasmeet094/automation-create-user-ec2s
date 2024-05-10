@@ -2,9 +2,8 @@
 # Create Users in EC2 Instances Automattically through AWS SECRETS Manager
 
 ### Document Explain
-
 ```
-Document.txt - This is the document which is used in SSM/AWS Systems Manger to create automation. This document incluse 2 scripts which will first delete users which are not in current secrets manager. Then It will create new users if there is any new user entry in aws secrets manager. Users should be create as name and then ssh-public_key. It will create the users on ec2 and add public key in authorized_keys file.    
+Document.txt - This is the document which is used in SSM/AWS Systems Manager to create automation. This document incluse 2 scripts which will first delete users which are not in current secrets manager. Then It will create new users if there is any new user entry in aws secrets manager. Users should be create as name and then ssh-public_key. It will create the users on ec2 and add public key in authorized_keys file.    
 NOTE: Ec2 Instance on which you need to enable this automation should have secrets manager and ssm full access 
 ```
 
@@ -26,7 +25,18 @@ AmazonSSMAutomationRole
 3. Then create role
 4. Now Select the role again and go to `Trust relationships` and edit `trust policy` and paste below content
 ```
-
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "events.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+        }
+    ]
+}
 ```
 
 ### Step 3 - Create EVENTBRIDGE Rule 
